@@ -59,3 +59,12 @@ The AI workflow is designed around the selected snippet:
 - Settings Screen
 
 
+## All Screenshots in the Docs/Screenshots folder
+
+- [Home Screen](docs/screenshots/Home.jpg)
+- [Create Snippet Screen](docs/screenshots/CreateSnippet.jpg)
+- [Snippet Details Screen](docs/screenshots/SnippetDetail.jpg)
+- [AI Explanation Screen](docs/screenshots/AIExplanation.jpg)
+- [Favorites Screen](docs/screenshots/Favourites.jpg)
+- [File Manager Screen](docs/screenshots/FileManager.jpg)
+- [Settings Screen](docs/screenshots/Settings.jpg)
