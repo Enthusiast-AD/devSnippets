@@ -23,7 +23,6 @@ export default function TabLayout(){
                 return <Ionicons name={icon} size={size} color={color}/>
             },
             headerShown:false,
-            // animation: 'fade'
         })
     }
     >

@@ -1,56 +1,61 @@
-# Welcome to your Expo app 👋
+# DevSnippets
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+DevSnippets is a local-first Expo app for creating, browsing, and opening code snippets on device. The app is designed to work offline and keeps snippet data on the device instead of depending on a remote backend.
 
-## Get started
+## Database Structure
 
-1. Install dependencies
+Snippets are stored as local records with the following shape:
 
-   ```bash
-   npm install
-   ```
+- `id`
+- `title`
+- `language`
+- `description`
+- `code`
+- `tags`
+- `isFavourite`
+- `createdAt`
+- `updatedAt`
 
-2. Start the app
+The current app stores the snippet collection in local storage backed by `expo-sqlite`, which keeps the data persistent across app restarts. The home screen loads that collection, and the detail screen reads a single snippet by id.
 
-   ```bash
-   npx expo start
-   ```
+## Offline Storage Approach
 
-In the output, you'll find options to open the app in a
+All snippet reads and writes happen locally, so the core experience continues to work without internet access.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- New snippets are written locally when the user saves the create form.
+- The home screen refreshes from the local store when the screen regains focus.
+- The detail page reads directly from the same local source so the full snippet can be opened offline.
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+This gives the app a local-first data flow with no dependency on a remote API for snippet management.
 
-## Get a fresh project
+## File Management Implementation
 
-When you're ready, run:
+The app includes a local file manager built on Expo FileSystem. It lets users:
 
-```bash
-npm run reset-project
-```
+- Browse the workspace folders offline.
+- Create local code files, template files, screenshot placeholders, and folders.
+- Copy or move files between folders using a clipboard-style flow.
+- Delete files and folders directly inside the app.
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+The workspace starts with dedicated folders for snippets, screenshots, templates, resources, and exports so the app has a predictable local structure.
 
-### Other setup steps
+## AI Integration Workflow
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+The AI workflow is designed around the selected snippet:
 
-## Learn more
+1. The user opens a snippet.
+2. The app sends the snippet code and metadata to the chosen AI provider.
+3. The provider returns an explanation, summary, or improvement suggestions.
+4. The result is rendered beside the selected snippet in a readable format.
 
-To learn more about developing your project with Expo, look at the following resources:
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Screens
 
-## Join the community
+- Home Screen
+- Create Snippet Screen
+- Snippet Details Screen
+- Favorites Screen
+- File Manager Screen
+- Settings Screen
 
-Join our community of developers creating universal apps.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.

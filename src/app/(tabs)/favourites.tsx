@@ -1,143 +1,101 @@
-import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
-import { FlatList, StyleSheet, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons'
+import { router } from 'expo-router'
+import React, { useState } from 'react'
+import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { formatSnippetLanguage, getFavouriteSnippets, matchesSnippetSearch } from '@/lib/snippets'
 
+function Favourites() {
+  const [searchText, setSearchText] = useState('')
+  const favourites = getFavouriteSnippets()
 
-const favouritesData = [
-  { id: '1', title: 'Debounce Function in JavaScript', tags: ['javascript', 'functions', 'performance'], language: 'javascript' },
-  { id: '2', title: 'React useEffect Cleanup', tags: ['react', 'hooks'], language: 'typescript' },
-  { id: '3', title: 'Python FastAPI Example', tags: ['python', 'fastapi', 'api'], language: 'python'},
-  { id: '4', title: 'CSS Glassmorphism Card', tags: ['css', 'ui', 'design'], language: 'css' },
-  { id: '5', title: 'JWT Auth Middleware', tags: ['javascript', 'express', 'auth'], language: 'js' },
-]
-const favourites = () => {
-    const [searchText,setSearchText] = useState('')
+  const filteredFavourites = favourites.filter((snippet) => matchesSnippetSearch(snippet, searchText))
 
-    const filteredData = favouritesData.filter((item) => {
-      const query = searchText.trim().toLowerCase()
-      if (!query) {
-        return true
-      }
-
-      return (
-        item.title.toLowerCase().includes(query) ||
-        item.language.toLowerCase().includes(query) ||
-        item.tags.some((tag) => tag.toLowerCase().includes(query))
-      )
-    })
-
-    const getLanguageIcon = (language: string) => {
-      switch (language.toLowerCase()) {
-        case 'javascript':
-        case 'js':
-          return 'logo-javascript'
-        case 'typescript':
-        case 'ts':
-          return 'code-slash'
-        case 'python':
-          return 'logo-python'
-        case 'css':
-          return 'logo-css3'
-        case 'react':
-          return 'logo-react'
-        default:
-          return 'code-slash'
-      }
-    }
-
-    const getLanguageAccent = (language: string) => {
-      switch (language.toLowerCase()) {
-        case 'javascript':
-        case 'js':
-          return '#F7DF1E'
-        case 'typescript':
-        case 'ts':
-          return '#3178C6'
-        case 'python':
-          return '#3776AB'
-        case 'css':
-          return '#264DE4'
-        case 'react':
-          return '#61DAFB'
-        default:
-          return '#A3FF3F'
-      }
-    }
   return (
     <SafeAreaView style={styles.container}>
-        <View style={{marginBottom:14}}>
-            <Text style={{color:'#F5F7FA',fontSize:24,fontWeight:'bold'}}>Favourites</Text>
-            <Text style={{color:'#6B7280',marginTop:4}}>Saved snippets and quick references</Text>
-        </View>
-        <View style={styles.searchContainer}>
-        <Ionicons name="search-outline" size={20} color="#6B6B6B" />
+      <View style={styles.header}>
+        <Text style={styles.title}>Favourites</Text>
+        <Text style={styles.subtitle}>Saved snippets and quick references</Text>
+      </View>
+
+      <View style={styles.searchContainer}>
+        <Ionicons name="search-outline" size={20} color="#6B7280" />
         <TextInput
-          placeholder='Search snippets, tags, language..'
+          placeholder="Search snippets, tags, language.."
           placeholderTextColor="#bdbaba"
           style={styles.searchInput}
           value={searchText}
           onChangeText={setSearchText}
         />
       </View>
-      <FlatList
-      data={filteredData}
-      keyExtractor={(item)=>item.id.toString()}
-      contentContainerStyle={{paddingBottom: 20}}
-      showsVerticalScrollIndicator={false}
-      ListEmptyComponent={
-        <View style={styles.emptyState}>
-          <Ionicons name="heart-dislike-outline" size={32} color="#6B7280" />
-          <Text style={styles.emptyTitle}>No favourites found</Text>
-          <Text style={styles.emptyText}>Try a different search term.</Text>
-        </View>
-      }
-      renderItem={({item})=>(
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <View style={styles.languageBadge}>
-              <View style={[styles.languageIconWrap, { backgroundColor: `${getLanguageAccent(item.language)}20` }]}>
-                <Ionicons name={getLanguageIcon(item.language)} size={18} color={getLanguageAccent(item.language)} />
-              </View>
-              <View style={{flex:1}}>
-                <Text style={styles.cardTitle}>{item.title}</Text>
-                <Text style={styles.languageText}>{item.language}</Text>
-              </View>
-            </View>
-            <Ionicons name="star" size={18} color="#A3FF3F" />
-          </View>
 
-          <View style={styles.tagRow}>
-            {item.tags.map((tag) => (
-              <Text key={tag} style={styles.tagChip}>{tag}</Text>
-            ))}
+      <FlatList
+        data={filteredFavourites}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <View style={styles.emptyState}>
+            <Ionicons name="heart-dislike-outline" size={32} color="#6B7280" />
+            <Text style={styles.emptyTitle}>No favourites found</Text>
+            <Text style={styles.emptyText}>Favourite snippets from the detail page to see them here.</Text>
           </View>
-        </View>
-      )}
+        }
+        renderItem={({ item }) => (
+          <Pressable style={styles.card} onPress={() => router.push({ pathname: '/detailPage', params: { id: item.id } })}>
+            <View style={styles.cardHeader}>
+              <View style={styles.cardHeading}>
+                <Text style={styles.cardTitle}>{item.title}</Text>
+                <Text style={styles.languageText}>{formatSnippetLanguage(item.language)}</Text>
+              </View>
+
+              <Ionicons name="star" size={18} color="#A3FF3F" />
+            </View>
+
+            {item.description ? <Text style={styles.description}>{item.description}</Text> : null}
+
+            <View style={styles.tagRow}>
+              {item.tags.map((tag) => (
+                <Text key={tag} style={styles.tagChip}>
+                  {tag}
+                </Text>
+              ))}
+            </View>
+          </Pressable>
+        )}
       />
     </SafeAreaView>
   )
 }
 
-export default favourites
+export default Favourites
 
 const styles = StyleSheet.create({
-    container:{
-        flex:1,
-        backgroundColor: "black",
-        color: "white",
-    padding:10
-    },
-    searchContainer: {
+  container: {
+    flex: 1,
+    backgroundColor: '#07070A',
+    padding: 16,
+  },
+  header: {
+    marginBottom: 14,
+  },
+  title: {
+    color: '#F5F7FA',
+    fontSize: 24,
+    fontWeight: '800',
+  },
+  subtitle: {
+    color: '#6B7280',
+    marginTop: 4,
+  },
+  searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
     gap: 8,
     borderRadius: 14,
-    backgroundColor: '#1a1919',
-    // borderWidth: 1,
-    // borderColor: '#E6E6E6',
+    backgroundColor: '#161A22',
     marginBottom: 20,
     shadowColor: '#000',
     shadowOpacity: 0.05,
@@ -150,7 +108,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     color: '#ccc9c9',
     fontSize: 14,
-    backgroundColor: '#161A22'
+    backgroundColor: '#161A22',
+  },
+  listContent: {
+    paddingBottom: 20,
   },
   card: {
     backgroundColor: '#161A22',
@@ -166,18 +127,8 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: 12,
   },
-  languageBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+  cardHeading: {
     flex: 1,
-  },
-  languageIconWrap: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   cardTitle: {
     color: '#F5F7FA',
@@ -189,6 +140,12 @@ const styles = StyleSheet.create({
     color: '#A3FF3F',
     fontSize: 12,
     textTransform: 'capitalize',
+  },
+  description: {
+    color: '#9CA3AF',
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 10,
   },
   tagRow: {
     flexDirection: 'row',
@@ -219,5 +176,6 @@ const styles = StyleSheet.create({
   emptyText: {
     color: '#6B7280',
     fontSize: 13,
+    textAlign: 'center',
   },
 })

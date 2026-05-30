@@ -1,7 +1,9 @@
 import { Ionicons } from '@expo/vector-icons'
 import React from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+
+import { exportAllSnippetsToFile } from '@/lib/snippetExport'
 
 const settings = () => {
   const appearanceItems = [
@@ -35,6 +37,8 @@ const settings = () => {
             <Pressable
               key={item.id}
               style={[styles.row, !isLast && styles.rowDivider]}
+              onPress={item.onPress}
+              disabled={!item.onPress}
               android_ripple={{ color: '#1f2430' }}
             >
               <View style={styles.rowLeft}>
@@ -58,6 +62,15 @@ const settings = () => {
     </View>
   )
 
+  const handleExportAll = () => {
+    const exportedFile = exportAllSnippetsToFile()
+    Alert.alert('Export complete', `Saved a local backup as ${exportedFile.name}`)
+  }
+
+  const storageItemsWithActions = storageItems.map((item) =>
+    item.id === 'export' ? { ...item, onPress: handleExportAll } : item
+  )
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -65,7 +78,7 @@ const settings = () => {
       </View>
 
       <Section title="Appearance" items={appearanceItems} />
-      <Section title="Data & Storage" items={storageItems} />
+      <Section title="Data & Storage" items={storageItemsWithActions} />
       <Section title="Security" items={securityItems} />
       <Section title="About" items={aboutItems} />
     </SafeAreaView>

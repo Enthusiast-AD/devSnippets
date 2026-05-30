@@ -1,50 +1,18 @@
-import { Ionicons } from '@expo/vector-icons';
-import { Link, router } from 'expo-router';
-import React, { useState } from 'react';
-import { FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons'
+import { router } from 'expo-router'
+import React, { useState } from 'react'
+import { FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
-const index = () => {
-  const [searchText, setSearchText] = useState<string>('')
+import { formatSnippetLanguage, getSnippets, matchesSnippetSearch } from '@/lib/snippets'
 
-    // useEffect(()=>{
+function Index() {
+  const [searchText, setSearchText] = useState('')
+  const snippets = getSnippets()
 
-    // },[])
-    const data = [
-      {
-        "id":1,
-        "title":"React UseEffect Cleanup",
-        "language":"javascript",
-        "tags":["javascript","react"],
-        "code":"useEffect(() => {\n  const timer = setInterval(() => {\n    console.log('running');\n  }, 1000);\n\n  return () => clearInterval(timer);\n}, []);",
-        "isFavourite":false
-      },
-      {
-        "id":2,
-        "title":"Async Storage Setup",
-        "language":"typescript",
-        "tags":["react-native","storage"],
-        "code":"import AsyncStorage from '@react-native-async-storage/async-storage';\n\nconst saveValue = async (value: string) => {\n  await AsyncStorage.setItem('my-key', value);\n};\n\nconst getValue = async () => {\n  const value = await AsyncStorage.getItem('my-key');\n  return value;\n};",
-        "isFavourite":true
-      },
-      {
-        "id":3,
-        "title":"FlatList Render Item",
-        "language":"javascript",
-        "tags":["react-native","ui"],
-        "code":"<FlatList\n  data={data}\n  keyExtractor={(item) => item.id}\n  renderItem={({ item }) => (\n    <View>\n      <Text>{item.title}</Text>\n    </View>\n  )}\n/>",
-        "isFavourite":false
-      },
-      {
-        "id":4,
-        "title":"Search Input Debounce",
-        "language":"typescript",
-        "tags":["hooks","performance"],
-        "code":"useEffect(() => {\n  const timeout = setTimeout(() => {\n    console.log(searchText);\n  }, 500);\n\n  return () => clearTimeout(timeout);\n}, [searchText]);",
-        "isFavourite":false
-      },
-    ]
-    const Header = () => (
+  const filteredSnippets = snippets.filter((snippet) => matchesSnippetSearch(snippet, searchText))
+
+  const header = (
       <>
         <View style={styles.headerRow}>
           <View>
@@ -68,15 +36,15 @@ const index = () => {
 
         <Text style={styles.sectionTitle}>Quick Actions</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.actionsRow}>
-          <Pressable style={styles.actionCard} onPress={()=> router.push('/createSnippet')}>
+          <Pressable style={styles.actionCard} onPress={() => router.push('/createSnippet')}>
             <Ionicons name="create-outline" size={22} color="#A3FF3F" />
             <Text style={styles.actionLabel}>New Snippet</Text>
           </Pressable>
-          <Pressable style={styles.actionCard}>
+          <Pressable style={styles.actionCard} onPress={() => router.push('/aiExplain')}>
             <Ionicons name="flash-outline" size={22} color="#A3FF3F" />
             <Text style={styles.actionLabel}>AI Explain</Text>
           </Pressable>
-          <Pressable style={styles.actionCard}>
+          <Pressable style={styles.actionCard} onPress={() => router.push('/files')}>
             <Ionicons name="folder" size={22} color="#FFB84D" />
             <Text style={styles.actionLabel}>File Manager</Text>
           </Pressable>
@@ -92,22 +60,42 @@ const index = () => {
     return (
       <SafeAreaView style={styles.container}>
         <FlatList
-          data={data}
-          keyExtractor={(item)=>item.id.toString()}
-          renderItem={({item})=>(
-            <Pressable style={styles.card}>
-              <View style={styles.cardRow}>
-                <Text style={styles.cardTitle}>{item.title}</Text>
-                <Ionicons name={item.isFavourite ? "star" : "star-outline"} size={20} color={item.isFavourite ? "#A3FF3F" : "#6B7280"} />
-              </View>
-              <View style={styles.tagsRow}>
-                {item.tags.map((tag,idx)=>(
-                  <Text key={idx} style={styles.tag}>{tag}</Text>
-                ))}
-              </View>
-            </Pressable>
-          )}
-          ListHeaderComponent={Header}
+          data={filteredSnippets}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => {
+            return (
+              <Pressable style={styles.card} onPress={() => router.push({ pathname: '/detailPage', params: { id: item.id } })}>
+                <View style={styles.cardRow}>
+                  <Text style={styles.cardTitle}>{item.title}</Text>
+                  <Ionicons
+                    name={item.isFavourite ? 'star' : 'star-outline'}
+                    size={20}
+                    color={item.isFavourite ? '#A3FF3F' : '#6B7280'}
+                  />
+                </View>
+
+                <View style={styles.metaRow}>
+                  <Text style={styles.languagePill}>{formatSnippetLanguage(item.language)}</Text>
+                  {item.description ? <Text style={styles.previewText}>{item.description}</Text> : null}
+                </View>
+
+                <View style={styles.tagsRow}>
+                  {item.tags.map((tag) => (
+                    <Text key={tag} style={styles.tag}>
+                      {tag}
+                    </Text>
+                  ))}
+                </View>
+              </Pressable>
+            )
+          }}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyTitle}>No snippets yet</Text>
+              <Text style={styles.emptyText}>Create your first snippet and it will be stored locally on this device.</Text>
+            </View>
+          }
+          ListHeaderComponent={header}
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -116,7 +104,7 @@ const index = () => {
     )
 }
 
-export default index
+export default Index
 
 const styles = StyleSheet.create({
   container: {
@@ -214,6 +202,22 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 8,
   },
+  metaRow: {
+    marginTop: 10,
+    gap: 8,
+  },
+  languagePill: {
+    color: '#A3FF3F',
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  previewText: {
+    color: '#9CA3AF',
+    fontSize: 12,
+    lineHeight: 18,
+  },
   tagsRow: {
     flexDirection: 'row',
     marginTop: 10,
@@ -228,5 +232,23 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     marginRight: 8,
     marginBottom: 6,
+  },
+  emptyState: {
+    backgroundColor: '#0F1117',
+    borderRadius: 12,
+    padding: 18,
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  emptyTitle: {
+    color: '#F5F7FA',
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  emptyText: {
+    color: '#9CA3AF',
+    fontSize: 13,
+    lineHeight: 18,
   },
 })

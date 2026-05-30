@@ -1,26 +1,133 @@
-import React, { useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
-import { Link } from 'expo-router'
+import { router, useLocalSearchParams } from 'expo-router'
+import React, { useEffect, useState } from 'react'
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
-const createSnippet = () => {
-  const [title, setTitle] = useState('Debounce Function in JavaScript')
-  const [language, setLanguage] = useState('JavaScript')
-  const [description, setDescription] = useState('What does this snippet do?')
+import { getSnippetById, saveSnippet, updateSnippet } from '@/lib/snippets'
 
-  const tags = ['javascript', 'function', 'performance']
+const LANGUAGE_OPTIONS = ['JavaScript', 'TypeScript', 'Python', 'Go', 'Rust']
+
+type FormState = {
+  title: string
+  language: string
+  description: string
+  code: string
+  tags: string[]
+}
+
+const EMPTY_FORM: FormState = {
+  title: '',
+  language: '',
+  description: '',
+  code: '',
+  tags: [],
+}
+
+function serializeForm(form: FormState) {
+  return JSON.stringify(form)
+}
+
+function CreateSnippet() {
+  const params = useLocalSearchParams<{ id?: string | string[] }>()
+  const snippetId = Array.isArray(params.id) ? params.id[0] : params.id
+  const [form, setForm] = useState<FormState>(EMPTY_FORM)
+  const [newTag, setNewTag] = useState('')
+  const [initialSnapshot, setInitialSnapshot] = useState(serializeForm(EMPTY_FORM))
+
+  useEffect(() => {
+    if (!snippetId) {
+      setForm(EMPTY_FORM)
+      setInitialSnapshot(serializeForm(EMPTY_FORM))
+      return
+    }
+
+    const existingSnippet = getSnippetById(snippetId)
+
+    if (!existingSnippet) {
+      return
+    }
+
+    const nextForm: FormState = {
+      title: existingSnippet.title,
+      language: existingSnippet.language,
+      description: existingSnippet.description,
+      code: existingSnippet.code,
+      tags: existingSnippet.tags,
+    }
+
+    setForm(nextForm)
+    setInitialSnapshot(serializeForm(nextForm))
+  }, [snippetId])
+
+  const isDirty = serializeForm(form) !== initialSnapshot
+
+  const updateField = <Key extends keyof FormState>(key: Key, value: FormState[Key]) => {
+    setForm((currentForm) => ({
+      ...currentForm,
+      [key]: value,
+    }))
+  }
+
+  const addTag = () => {
+    const normalizedTag = newTag.trim().toLowerCase()
+
+    if (!normalizedTag || form.tags.includes(normalizedTag)) {
+      return
+    }
+
+    setForm((currentForm) => ({
+      ...currentForm,
+      tags: [...currentForm.tags, normalizedTag],
+    }))
+    setNewTag('')
+  }
+
+  const removeTag = (tagToRemove: string) => {
+    setForm((currentForm) => ({
+      ...currentForm,
+      tags: currentForm.tags.filter((tag) => tag !== tagToRemove),
+    }))
+  }
+
+  const handleSave = () => {
+    if (!form.code.trim()) {
+      Alert.alert('Missing code', 'Add a code snippet before saving.')
+      return
+    }
+
+    const savedSnippet = snippetId ? updateSnippet(snippetId, form) : saveSnippet(form)
+
+    if (!savedSnippet) {
+      Alert.alert('Save failed', 'Could not save the selected snippet.')
+      return
+    }
+
+    router.replace({ pathname: '/detailPage', params: { id: savedSnippet.id } })
+  }
+
+  const handleBack = () => {
+    if (!isDirty) {
+      router.back()
+      return
+    }
+
+    Alert.alert('Discard changes?', 'Your snippet has unsaved changes.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Discard', style: 'destructive', onPress: () => router.back() },
+    ])
+  }
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Link  href={"/"} style={styles.headerButton}>
+        <Pressable style={styles.headerButton} onPress={handleBack}>
           <Ionicons name="arrow-back" size={20} color="#F5F7FA" />
-        </Link>
+        </Pressable>
 
-        <Text style={styles.headerTitle}>Create Snippet</Text>
+        <Text style={styles.headerTitle}>{snippetId ? 'Edit Snippet' : 'Create Snippet'}</Text>
 
-        <Pressable style={styles.headerButton}>
+        <Pressable style={styles.headerButton} onPress={handleSave}>
           <Ionicons name="checkmark" size={20} color="#A3FF3F" />
         </Pressable>
       </View>
@@ -29,8 +136,8 @@ const createSnippet = () => {
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Title</Text>
           <TextInput
-            value={title}
-            onChangeText={setTitle}
+            value={form.title}
+            onChangeText={(value) => updateField('title', value)}
             placeholder="Snippet title"
             placeholderTextColor="#6B7280"
             style={styles.input}
@@ -39,51 +146,78 @@ const createSnippet = () => {
 
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Language</Text>
-          <Pressable style={styles.selectInput}>
-            <Text style={styles.selectText}>{language}</Text>
-            <Ionicons name="chevron-down" size={18} color="#6B7280" />
-          </Pressable>
+          <TextInput
+            value={form.language}
+            onChangeText={(value) => updateField('language', value)}
+            placeholder="JavaScript"
+            placeholderTextColor="#6B7280"
+            style={styles.input}
+          />
+
+          <View style={styles.quickLanguageWrap}>
+            {LANGUAGE_OPTIONS.map((option) => (
+              <Pressable
+                key={option}
+                style={[styles.quickLanguageChip, form.language === option && styles.quickLanguageChipActive]}
+                onPress={() => updateField('language', option)}
+              >
+                <Text style={[styles.quickLanguageText, form.language === option && styles.quickLanguageTextActive]}>
+                  {option}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
         </View>
 
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Tags</Text>
-          <View style={styles.tagWrap}>
-            {tags.map((tag) => (
-              <View key={tag} style={styles.tagChip}>
-                <Text style={styles.tagText}>{tag}</Text>
-              </View>
-            ))}
+          <View style={styles.tagInputRow}>
+            <TextInput
+              value={newTag}
+              onChangeText={setNewTag}
+              placeholder="Add a tag"
+              placeholderTextColor="#6B7280"
+              style={[styles.input, styles.tagInput]}
+              returnKeyType="done"
+              onSubmitEditing={addTag}
+            />
 
-            <Pressable style={styles.addTagChip}>
+            <Pressable style={styles.addTagButton} onPress={addTag}>
               <Ionicons name="add" size={16} color="#A3FF3F" />
-              <Text style={styles.addTagText}>Add Tag</Text>
+              <Text style={styles.addTagButtonText}>Add</Text>
             </Pressable>
+          </View>
+
+          <View style={styles.tagWrap}>
+            {form.tags.map((tag) => (
+              <Pressable key={tag} style={styles.tagChip} onPress={() => removeTag(tag)}>
+                <Text style={styles.tagText}>{tag}</Text>
+              </Pressable>
+            ))}
           </View>
         </View>
 
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Code</Text>
-          <View style={styles.codeBox}>
-            <Text style={styles.codeText}>
-{`function debounce(func, delay) {
-  let timeout;
-
-  return function (...args) {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => {
-      func.apply(this, args);
-    }, delay);
-  };
-}`}
-            </Text>
-          </View>
+          <TextInput
+            value={form.code}
+            onChangeText={(value) => updateField('code', value)}
+            placeholder="Paste or write your snippet here"
+            placeholderTextColor="#6B7280"
+            style={[styles.input, styles.codeInput]}
+            multiline
+            autoCapitalize="none"
+            autoCorrect={false}
+            spellCheck={false}
+            textAlignVertical="top"
+          />
         </View>
 
         <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Add Description [optional]</Text>
+          <Text style={styles.label}>Description</Text>
           <TextInput
-            value={description}
-            onChangeText={setDescription}
+            value={form.description}
+            onChangeText={(value) => updateField('description', value)}
             placeholder="What does this snippet do?"
             placeholderTextColor="#6B7280"
             style={[styles.input, styles.descriptionInput]}
@@ -95,7 +229,7 @@ const createSnippet = () => {
   )
 }
 
-export default createSnippet
+export default CreateSnippet
 
 const styles = StyleSheet.create({
   container: {
@@ -128,7 +262,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   fieldGroup: {
-    marginBottom: 12,
+    marginBottom: 16,
   },
   label: {
     color: '#8A909D',
@@ -150,25 +284,45 @@ const styles = StyleSheet.create({
     minHeight: 88,
     textAlignVertical: 'top',
   },
-  selectInput: {
-    backgroundColor: '#161A22',
+  quickLanguageWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 10,
+  },
+  quickLanguageChip: {
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    backgroundColor: '#10151C',
     borderWidth: 1,
     borderColor: '#22262f',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
   },
-  selectText: {
-    color: '#F5F7FA',
-    fontSize: 14,
+  quickLanguageChipActive: {
+    backgroundColor: '#1A2418',
+    borderColor: '#294124',
+  },
+  quickLanguageText: {
+    color: '#9AA4B2',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  quickLanguageTextActive: {
+    color: '#A3FF3F',
   },
   tagWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
+    marginTop: 10,
+  },
+  tagInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  tagInput: {
+    flex: 1,
   },
   tagChip: {
     backgroundColor: '#21311F',
@@ -183,7 +337,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
-  addTagChip: {
+  addTagButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
@@ -194,23 +348,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#22262f',
   },
-  addTagText: {
+  addTagButtonText: {
     color: '#A3FF3F',
     fontSize: 12,
     fontWeight: '600',
   },
-  codeBox: {
-    backgroundColor: '#11161D',
-    borderWidth: 1,
-    borderColor: '#22262f',
-    borderRadius: 12,
-    padding: 14,
+  codeInput: {
     minHeight: 180,
-  },
-  codeText: {
-    color: '#D8DEE9',
-    fontSize: 12,
-    lineHeight: 18,
     fontFamily: 'monospace',
   },
 })
